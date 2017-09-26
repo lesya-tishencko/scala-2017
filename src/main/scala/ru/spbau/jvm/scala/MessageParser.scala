@@ -13,13 +13,13 @@ class MessageParser extends RegexParsers {
   }
 
   val getWeather : Parser[GetWeather] =
-    "[Ww]heather in".r ~> wordParser ^^ {
+    "[Ww]eather in".r ~> wordParser ^^ {
       case word => GetWeather(word)
     }
 
   val getStatistic : Parser[GetStatistic] =
     "[Ss]how last".r ~> intParser ~> "queries".r ^^ {
-      case qNumber => GetStatistic(qNumber)
+      case qNumber => GetStatistic(1)
     }
 
   val userMessage : Parser[UserMessage] =

@@ -4,13 +4,13 @@ import akka.actor.{ActorSystem, Props}
 import com.typesafe.akka.extension.quartz.QuartzSchedulerExtension
 
 object Main extends App {
-  val token = "361159336:AAFe5ZaPiAE1ZlGtflDrkEwxlupqKte0_Es"
+  val token = "361159336:AAFe5ZaPiAE1ZlGtflDrkEwxlupqKteO_Es"
 
   val system = ActorSystem()
   val scheduler = QuartzSchedulerExtension(system)
-  val database = system.actorOf(Props(classOf[WheatherActor]))
+  val database = system.actorOf(Props(classOf[WeatherActor]))
 
-  private val bot = new WheatherBot(token, database)
+  private val bot = new WeatherBot(token, database)
   val actor = system.actorOf(Props(classOf[AskActor], bot))
 
   scheduler.createSchedule("every minute", None, "	0/1 * * 1/1 * ? *")

@@ -4,7 +4,7 @@ import java.io.{BufferedReader, InputStreamReader}
 import java.net.{HttpURLConnection, URL}
 
 import akka.persistence.PersistentActor
-import ru.spbau.jvm.scala.WeatherActor.{AddWeather, Event}
+import ru.spbau.jvm.scala.WeatherActor._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -44,13 +44,13 @@ class WeatherActor extends PersistentActor {
 
   override def receiveCommand: Receive = {
     case evt: Event => persist(evt)(receiveEvent)
-    case GetWeather(city) =>
-      sender ! mapCity.get(city)
-    case GetStatistic(id) =>
+    case GetWeatherByName(city) =>
+      sender ! mapCity.getOrElse(city, (0, ""))
+    case GetStatisticById(id) =>
       sender ! map.getOrElse(id, ArrayBuffer.empty)
   }
 
-  override def persistenceId = "wheather-database"
+  override def persistenceId = "weather-database"
 }
 
 object WeatherActor {
@@ -59,9 +59,9 @@ object WeatherActor {
 
   case class AddWeather(id: Long, city: String) extends Event
 
-  case class GetWeather(city: String)
+  case class GetWeatherByName(city: String)
 
-  case class GetStatistic(id: Long)
+  case class GetStatisticById(id: Long)
 
   case class JsonAnsw(buffer: (Long, String))
 }

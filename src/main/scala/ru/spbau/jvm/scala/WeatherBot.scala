@@ -1,15 +1,17 @@
 package ru.spbau.jvm.scala
 
-import akka.actor.Status.Success
+import scala.util.Success
 import akka.actor.{Actor, ActorRef}
 import akka.pattern.ask
 import akka.util.Timeout
+
 import scala.concurrent.duration.DurationInt
 import info.mukel.telegrambot4s.api.declarative.Commands
 import info.mukel.telegrambot4s.api.{Polling, TelegramBot}
-import ru.spbau.jvm.scala.WeatherActor.AddWeather
+import ru.spbau.jvm.scala.WeatherActor.{AddWeather, GetStatisticById, GetWeatherByName}
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 class AskActor(bot: WeatherBot) extends Actor {
   override def receive = {
@@ -36,23 +38,23 @@ class WeatherBot(val token: String, val database: ActorRef) extends TelegramBot 
           MessageParser.parse(text) match {
             case GetWeather(city) =>
               implicit val timeout: Timeout = Timeout(1.second)
-              (database ? GetWeather(city)).onComplete {
+              (database ? GetWeatherByName(city)).onComplete {
+                case Success((0, "")) =>
+                  reply(AddWeather(message.chat.id, city).toString())
                 case Success((time, json)) => {
-                  if (System.currentTimeMillis() - time > 600000)
-                    reply(AddWeather(message.char.id, city))
+                  if (System.currentTimeMillis() - time.asInstanceOf[Long] > 600000)
+                    reply(AddWeather(message.chat.id, city).toString())
                   else
-                    reply(json)
+                    reply(json.asInstanceOf[String])
                 }
-                case Success(None) =>
-                  reply(AddWeather(message.char.id, city))
                 case _ =>
                   reply("Database error:(")
               }
             case GetStatistic(qNumbers) =>
               implicit val timeout: Timeout = Timeout(1.second)
-              (database ? GetStatistic(message.chat.id)).onComplete {
+              (database ? GetStatisticById(message.chat.id)).onComplete {
                 case Success(buffer) =>
-                  reply(buffer.map {
+                  reply(buffer.asInstanceOf[ArrayBuffer[String]].map {
                     case (json) => s"$json"
                   }.mkString("\n"))
                 case _ =>
