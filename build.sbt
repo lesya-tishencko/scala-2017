@@ -1,6 +1,8 @@
-name := "scala-2017"
+name := "scala-2017_hw04"
 
-version := "0.1"
+version := "1.0"
 
 scalaVersion := "2.12.3"
-        
+
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1"
+    
