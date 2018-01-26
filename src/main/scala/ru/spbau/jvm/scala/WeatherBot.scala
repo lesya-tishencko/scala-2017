@@ -8,7 +8,8 @@ import akka.util.Timeout
 import scala.concurrent.duration.DurationInt
 import info.mukel.telegrambot4s.api.declarative.Commands
 import info.mukel.telegrambot4s.api.{Polling, TelegramBot}
-import ru.spbau.jvm.scala.WeatherActor.{AddWeather, GetStatisticById, GetWeatherByName}
+import info.mukel.telegrambot4s.models.Message
+import ru.spbau.jvm.scala.WeatherActor.{GetStatisticById, GetWeatherByName}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -36,33 +37,40 @@ class WeatherBot(val token: String, val database: ActorRef) extends TelegramBot 
           map.remove(message.chat.id)
         } else
           MessageParser.parse(text) match {
-            case GetWeather(city) =>
-              implicit val timeout: Timeout = Timeout(1.second)
-              (database ? GetWeatherByName(city)).onComplete {
-                case Success((0, "")) =>
-                  reply(AddWeather(message.chat.id, city).toString())
-                case Success((time, json)) => {
-                  if (System.currentTimeMillis() - time.asInstanceOf[Long] > 600000)
-                    reply(AddWeather(message.chat.id, city).toString())
-                  else
-                    reply(json.asInstanceOf[String])
-                }
-                case _ =>
-                  reply("Database error:(")
-              }
-            case GetStatistic(qNumbers) =>
-              implicit val timeout: Timeout = Timeout(1.second)
-              (database ? GetStatisticById(message.chat.id)).onComplete {
-                case Success(buffer) =>
-                  reply(buffer.asInstanceOf[ArrayBuffer[String]].map {
-                    case (json) => s"$json"
-                  }.mkString("\n"))
-                case _ =>
-                  reply("Database error:(")
-              }
-            case WrongMessage =>
-              reply("Uncorrect command:(")
+            case GetWeather(city) => handleWeatherAnswer(message, city)
+            case GetStatistic(recordCount) => handleStatistic(message, recordCount)
+            case WrongMessage => handleWrongMessage(message)
           }
       }
   }
+
+  private def handleWeatherAnswer(msg: Message, city: String): Unit = {
+    implicit val message = msg
+    implicit val timeout: Timeout = Timeout(10.second)
+    (database ? GetWeatherByName(msg.chat.id, city)).onComplete {
+      case Success((time, json)) =>
+        reply(s"Weather: ${json.asInstanceOf[String]}")
+      case evt =>
+        reply("error :(")
+    }
+  }
+
+  private def handleStatistic(msg: Message, recordCount: Int): Unit = {
+    implicit val message = msg
+    implicit val timeout: Timeout = Timeout(10.second)
+    (database ? GetStatisticById(message.chat.id)).onComplete {
+      case Success(buffer) =>
+        var result: String = buffer.asInstanceOf[ArrayBuffer[String]].map { case (json) => s"$json" }.take(recordCount).mkString("\n")
+        result = if (result.isEmpty) "<history is empty>" else result
+        reply(result)
+      case _ =>
+        reply("Database error:(")
+    }
+  }
+
+  private def handleWrongMessage(msg: Message): Unit = {
+    implicit val message = msg
+    reply("Uncorrect command:(")
+  }
+
 }

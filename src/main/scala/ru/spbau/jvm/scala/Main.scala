@@ -8,7 +8,7 @@ object Main extends App {
 
   val system = ActorSystem()
   val scheduler = QuartzSchedulerExtension(system)
-  val database = system.actorOf(Props(classOf[WeatherActor]))
+  val database = system.actorOf(Props(classOf[WeatherActor], new Cache()))
 
   private val bot = new WeatherBot(token, database)
   val actor = system.actorOf(Props(classOf[AskActor], bot))
